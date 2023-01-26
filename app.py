@@ -1,4 +1,4 @@
-from flask import Flask, render_template,Response
+from flask import Flask, render_template,Response, request
 import cv2
 from base64 import encode
 from gettext import install
@@ -9,6 +9,7 @@ import numpy as np
 import face_recognition
 import os
 from datetime import datetime
+import sheet
 
 
 app = Flask(__name__)
@@ -48,7 +49,11 @@ def camera():
             if name not in namelist:
                 now =datetime.now()
                 dtstring =now.strftime("%H:%M:%S")
-                f.writelines(f'\n{name},{dtstring}')    
+                f.writelines(f'\n{name},{dtstring}')
+
+                new_id=sheet.create()    
+                sheet_data = [[name,dtstring]]
+                sheet.sheet_function(sheet_data,new_id)
 
     #calling the function
     encodelistknown=findencoding(images)            
@@ -89,6 +94,24 @@ def camera():
             
             cv2.imshow("webcam",img)
             cv2.waitKey(1)
+
+@app.route('/student', methods=['GET', 'POST'])
+def student_details():
+    if request.method == 'POST':
+        # Get student details from the form
+        name = request.form['name']
+        roll_number = request.form['roll_number']
+        email = request.form['email']
+        department = request.form['department']
+        leave_status = request.files['leave_status']
+
+        # Save the leave status file to disk
+        leave_status.save(f'leave_status_{roll_number}.pdf')
+
+        # Do something with the student details (e.g. save them to a database)
+        return f'Student details: {name}, {roll_number}, {email}, {department}'
+    return render_template('student_form.html')
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True)

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Student Form</title>
+  <style>
+    /* Some CSS styles for the form */
+    form {
+      display: flex;
+      flex-wrap: wrap;
+    }
+    form label {
+      width: 100px;
+      margin-right: 10px;
+    }
+    form input[type="text"], form select {
+      width: 200px;
+      padding: 5px;
+      margin-bottom: 10px;
+    }
+    form input[type="file"] {
+      margin-bottom: 10px;
+    }
+    form input[type="submit"] {
+      margin-left: 110px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Enter Student Details</h1>
+  <form method="post" enctype="multipart/form-data">
+    <label>Name:</label>
+    <input type="text" name="name">
+    <br>
+    <label>Roll Number:</label>
+    <input type="text" name="roll_number">
+    <br>
+    <label>Email:</label>
+    <input type="text" name="email">
+    <br>
+    <label>Department:</label>
+    <select name="department">
+      <option value="CSE">Computer Science and Engineering</option>
+      <option value="ECE">Electronics and Communication Engineering</option>
+      <option value="ME">Mechanical Engineering</option>
+    </select>
+    <br>
+    <label>Leave Status:</label>
+    <input type="file" name="leave_status">
+    <br>
+    <input type="submit" value="Submit">
+  </form>
+</body>
+</html>
