@@ -1,4 +1,4 @@
-from flask import Flask, render_template,Response, request
+from flask import Flask, render_template,Response, request,session,redirect,url_for
 import cv2
 from base64 import encode
 from gettext import install
@@ -10,9 +10,13 @@ import face_recognition
 import os
 from datetime import datetime
 import sheet
+from pymongo import MongoClient
 
 
 app = Flask(__name__)
+client = MongoClient("mongodb+srv://leaveletter:2022@leave-letter.e1xgs7e.mongodb.net/?retryWrites=true&w=majority")
+db = client['user_login']
+mycol = db["credentials"]
 
 @app.route('/')
 
@@ -94,6 +98,59 @@ def camera():
             
             cv2.imshow("webcam",img)
             cv2.waitKey(1)
+
+@app.route('/login', methods=['GET', 'POST'])
+def index():
+    
+    if request.method == 'POST':
+        name = request.form["roll_no"]
+        password = request.form['password']
+        pwd = mycol.find({"_id" : name})[0]["password"]
+        print(pwd)
+
+        if pwd == password:
+            # messages = json.dumps({"name":name})
+            session['roll_no'] = name
+            session["pwd"] = pwd
+            return redirect(url_for('dashboard'))
+            # return render_template("dashboard.html", name = name)
+        else:
+            return render_template("Login.html", pwd = "wrong password")
+
+    return render_template("Login.html")
+
+@app.route('/dashboard', methods=['GET', 'POST'])
+def dashboard():
+    # messages = request.args['messages']
+    roll_no = session['roll_no']
+    print(roll_no)
+    # print(json.loads(messages))
+
+    if request.method == 'POST':
+        pwd = session["pwd"]
+        current_pass = request.form["current_pass"]
+        new_pass = request.form["new_pass"]
+        re_pass = request.form["re_pass"]
+
+        if pwd == current_pass and new_pass == re_pass:
+           
+
+            myquery = { "_id": roll_no }
+            newvalues = { "$set": { "password": new_pass } }
+            mycol.update_one(myquery, newvalues)
+            print("password changed")
+
+
+
+
+        elif pwd != current_pass:
+            print("current password incorrect")
+        
+            
+
+
+    return render_template("dashboard(1).html", name = roll_no)
+
 
 @app.route('/student', methods=['GET', 'POST'])
 def student_details():
