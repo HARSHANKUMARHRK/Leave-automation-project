@@ -11,9 +11,12 @@ import os
 from datetime import datetime
 import sheet
 from pymongo import MongoClient
+import PyPDF2
+import re
 
 
 app = Flask(__name__)
+app.secret_key = "abc" 
 client = MongoClient("mongodb+srv://leaveletter:2022@leave-letter.e1xgs7e.mongodb.net/?retryWrites=true&w=majority")
 db = client['user_login']
 mycol = db["credentials"]
@@ -164,6 +167,14 @@ def student_details():
 
         # Save the leave status file to disk
         leave_status.save(f'leave_status_{roll_number}.pdf')
+        pdf_file = PyPDF2.PdfFileReader(open(f"leave_status_{roll_number}.pdf", "rb"))
+        text = pdf_file.getPage(0).extractText()
+        
+
+        date = re.search("Date: [0-9]{4}-[0-9]{2}-[0-9]{2}", text).group()
+        date = date.split(': ')[1]
+
+        print(date)
 
         # Do something with the student details (e.g. save them to a database)
         return f'Student details: {name}, {roll_number}, {email}, {department}'
