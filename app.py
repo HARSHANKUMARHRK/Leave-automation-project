@@ -115,7 +115,7 @@ def index():
             # messages = json.dumps({"name":name})
             session['roll_no'] = name
             session["pwd"] = pwd
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('student_details'))
             # return render_template("dashboard.html", name = name)
         else:
             return render_template("Login.html", pwd = "wrong password")
@@ -171,10 +171,6 @@ def student_details():
         text = pdf_file.getPage(0).extractText()
         
 
-        date = re.search("Date: [0-9]{4}-[0-9]{2}-[0-9]{2}", text).group()
-        date = date.split(': ')[1]
-
-        print(date)
 
         # Do something with the student details (e.g. save them to a database)
         return f'Student details: {name}, {roll_number}, {email}, {department}'
