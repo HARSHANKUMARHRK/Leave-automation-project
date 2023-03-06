@@ -1,4 +1,5 @@
-from flask import Flask, render_template,Response, request,session,redirect,url_for
+from bson import ObjectId
+from flask import Flask, render_template,Response, request,session,redirect,url_for,send_file
 import cv2
 from base64 import encode
 from gettext import install
@@ -13,6 +14,9 @@ import sheet
 from pymongo import MongoClient
 import PyPDF2
 import re
+import pytesseract
+import cv2
+import pdf2image
 
 
 app = Flask(__name__)
@@ -158,23 +162,82 @@ def dashboard():
 @app.route('/student', methods=['GET', 'POST'])
 def student_details():
     if request.method == 'POST':
-        # Get student details from the form
+
         name = request.form['name']
         roll_number = request.form['roll_number']
         email = request.form['email']
         department = request.form['department']
         leave_status = request.files['leave_status']
+        date=request.form["date"]
+        year=request.form["year"]
+        month=request.form["Month"]
 
-        # Save the leave status file to disk
+        final=date,"-",month,"-",year
+     
         leave_status.save(f'leave_status_{roll_number}.pdf')
         pdf_file = PyPDF2.PdfFileReader(open(f"leave_status_{roll_number}.pdf", "rb"))
         text = pdf_file.getPage(0).extractText()
-        
+
+        file_path = os.path.abspath(f'/home/kishore/Leave-automation-project/leave_status_{roll_number}.pdf')
+        pdf_file = f'leave_status_{roll_number}.pdf'
+        images = pdf2image.convert_from_path(pdf_file)
 
 
-        # Do something with the student details (e.g. save them to a database)
-        return f'Student details: {name}, {roll_number}, {email}, {department}'
+        text = pytesseract.image_to_string(images[0])
+
+        print(text.split())
+        date_1 = r'(\d{4})[-/\.](\d{2})[-/\.](\d{2})'# match date in format "dd/mm/yyyy"
+        date_pattern = r'(\d{1,2})-(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-(\d{4})'
+# date_pattern = r'(\d{1,2})-"q@"-(\d{4})'
+
+        match = re.search(date_pattern, text)
+        match2=re.search(date_1,text)
+        if match or match2:
+            date_0 = match.group()
+            if(match2):
+                date_1=match2.group()
+            print(f"Extracted date: {date_0}")
+        else:
+            print("No date found in text")
+
+        if str(date_0)==str(final).strip():
+            a="verified"
+        else:
+            a="not verified"
+
+        with open(file_path, 'rb') as f:
+            image_data = f.read()
+        document = {'image': image_data}
+        mycol.insert_one(document)
+        with open("data.csv","r+")as f:
+            f.writelines(f'\n{name},{roll_number},{email},{department},{final}')
+
+
+        return f'Student details: {name}, {roll_number}, {email}, {department},{a}'
     return render_template('student_form.html')
+
+@app.route('/pdf/<id>')
+def get_image(id):
+    document = mycol.find_one({'_id': ObjectId(id)})
+    if not document:
+        return 'PDF not found', 404
+
+    pdf_data = document.get('pdf')
+ 
+    response = Response(pdf_data, mimetype='application/pdf')
+    
+    response.headers.set('Content-Disposition', 'inline', filename='document.pdf')
+    
+    return response
+# @app.route('/pdf')
+# def display_pdf():
+#     return render_template('pdf.html', filename='leave_status_21.pdf')
+
+# @app.route('/pdf_viewer/<filename>')
+# def pdf_viewer(filename):
+#     path = 'path/to/your/pdf/files/' + filename
+#     return send_file(path, as_attachment=False)
+
 
 
 if __name__ == '__main__':
