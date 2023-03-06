@@ -23,7 +23,7 @@ app = Flask(__name__)
 app.secret_key = "abc" 
 client = MongoClient("mongodb+srv://leaveletter:2022@leave-letter.e1xgs7e.mongodb.net/?retryWrites=true&w=majority")
 db = client['user_login']
-mycol = db["credentials"]
+mycol = db["leave_data"]
 
 @app.route('/')
 
