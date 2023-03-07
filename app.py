@@ -17,6 +17,13 @@ import re
 import pytesseract
 import cv2
 import pdf2image
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+import pandas as pd
+import data
 
 
 app = Flask(__name__)
@@ -186,7 +193,7 @@ def student_details():
         text = pytesseract.image_to_string(images[0])
 
         print(text.split())
-        date_1 = r'(\d{4})[-/\.](\d{2})[-/\.](\d{2})'# match date in format "dd/mm/yyyy"
+        date_1 = r'(\d{4})[-/\.](\d{2})[-/\.](\d{2})'
         date_pattern = r'(\d{1,2})-(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-(\d{4})'
 # date_pattern = r'(\d{1,2})-"q@"-(\d{4})'
 
@@ -209,12 +216,101 @@ def student_details():
             image_data = f.read()
         document = {'image': image_data}
         mycol.insert_one(document)
-        with open("data.csv","r+")as f:
-            f.writelines(f'\n{name},{roll_number},{email},{department},{final}')
+        # with open("data.csv","r+")as f:
+        #     f.writelines(f'\n{name},{roll_number},{email},{department},{final}')
 
+        body ="hiiii"
+        sender = 'cryptrix22@gmail.com'
+        password = 'memusfkyojwjspdr'
+        receiver = email
+        
+        message = MIMEMultipart()
+        message['From'] = sender
+        message['To'] = receiver
+        message['Subject'] = "This is mail"
+        message.attach(MIMEText(body, 'plain'))
+
+        qrimage = f'leave_status_{roll_number}.pdf'
+
+        binary_pdf = open(qrimage, 'rb')
+        payload = MIMEBase('application', 'octate-stream', Name=qrimage)
+        payload.set_payload((binary_pdf).read())
+        encoders.encode_base64(payload)
+
+        payload.add_header('Content-Decomposition', 'attachment', filename=qrimage)
+        message.attach(payload)
+        message.attach(MIMEText(body, 'plain'))
+        session = smtplib.SMTP('smtp.gmail.com', 587)
+        session.starttls()
+        session.login(sender, password)
+        text = message.as_string()
+        session.sendmail(sender, receiver, text)
+        session.quit()
 
         return f'Student details: {name}, {roll_number}, {email}, {department},{a}'
     return render_template('student_form.html')
+@app.route('/send_mail',methods=['GET','POST'])
+def send_attendance():
+    if request.method=='POST':
+        df1=pd.read_csv("data.csv")
+        names=df1["name"]
+
+        df2=pd.read_csv("attendance.csv")
+        final_names=df2["name"]
+        # print(final_names)
+        att_name=[]
+        for j in final_names:
+            att_name.append(j)
+
+        # print(att_name)
+        l=[]
+        result=[]
+        for i in names:
+            if(i not in att_name):
+                l.append(i)
+                adj_row=df1[df1["name"]==i]
+                mail_id=adj_row["mailid"].values[0]
+                result.append(mail_id)
+
+        # print(l)
+
+        print(result)
+
+        for each in result:
+            body="This mail is regarding the application of leave"
+            sender = 'cryptrix22@gmail.com'
+            password = 'memusfkyojwjspdr'
+            receiver = each
+            message = MIMEMultipart()
+            message['From'] = sender
+            message['To'] = receiver
+            message['Subject'] = "Reminder mail to apply leave"
+            message.attach(MIMEText(body, 'plain'))
+            qrimage = 'leave.pdf'
+            binary_pdf = open(qrimage, 'rb')
+            payload = MIMEBase('application', 'octate-stream', Name=qrimage)
+            payload.set_payload((binary_pdf).read())
+            encoders.encode_base64(payload)
+
+            payload.add_header('Content-Decomposition', 'attachment', filename=qrimage)
+            message.attach(payload)
+
+            session = smtplib.SMTP('smtp.gmail.com', 587)
+
+            session.starttls()
+
+            session.login(sender, password)
+
+            text = message.as_string()
+            session.sendmail(sender, receiver, text)
+            session.quit()
+
+
+        
+
+    return render_template("attendance.html")
+
+
 
 @app.route('/pdf/<id>')
 def get_image(id):
@@ -227,8 +323,6 @@ def get_image(id):
     response = Response(pdf_data, mimetype='application/pdf')
     
     response.headers.set('Content-Disposition', 'inline', filename='document.pdf')
-    
-    return response
 # @app.route('/pdf')
 # def display_pdf():
 #     return render_template('pdf.html', filename='leave_status_21.pdf')
